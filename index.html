@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ZAP Content Script Vulnerability Test</title>
+    <style>
+        .test-area { margin: 20px; padding: 15px; border: 1px solid #ccc; }
+        .result { padding: 10px; margin: 5px 0; background: #f5f5f5; }
+        .vulnerable { border-left: 4px solid red; }
+        .secure { border-left: 4px solid green; }
+    </style>
+</head>
+<body>
+    <h1>ZAP Content Script Vulnerability Test</h1>
+    
+    <div class="test-area">
+        <h3>Test 1: XSS in Element Attributes</h3>
+        <input id='normal_input' value="safe_value">
+        <input id='malicious_id_<script>alert("xss")</script>' value="test1">
+        <button id='test_button_"><img src=x onerror=alert(1)>'>Button with XSS</button>
+        <div class="result" id="result1">Click elements above, then check recording</div>
+    </div>
+
+    <div class="test-area">
+        <h3>Test 2: Path Traversal in IDs</h3>
+        <input id='../../etc/passwd' value="test2">
+        <button id='../../../windows/system32/config/sam'>Path Traversal Button</button>
+        <div class="result" id="result2">Interact with elements above</div>
+    </div>
+
+    <div class="test-area">
+        <h3>Test 3: JavaScript Protocol & Data URLs</h3>
+        <a id='javascript:alert("js_protocol")' href="#">JS Protocol Link</a>
+        <div id='data:text/html,<script>alert("data_url")</script>'>Data URL Element</div>
+        <div class="result" id="result3">Click the link</div>
+    </div>
+
+    <div class="test-area">
+        <h3>Test 4: Template Injection</h3>
+        <input id='${alert("template_injection")}' value="test4">
+        <button id='#{malicious_code}'>Template Button</button>
+        <div class="result" id="result4">Interact with elements</div>
+    </div>
+
+    <div class="test-area">
+        <h3>Test 5: CSS Injection</h3>
+        <style>
+            .malicious-css { 
+                content: "'; color: red; background: blue; /*"; 
+            }
+        </style>
+        <div id='test";} body { background: red !important; } /*'>CSS Injection Div</div>
+        <button class='malicious-css'>CSS Class Button</button>
+        <div class="result" id="result5">Check if CSS breaks ZAP UI</div>
+    </div>
+
+    <div class="test-area">
+        <h3>Test 6: Special Characters & Encoding</h3>
+        <input id='"><script>alert("double_quote")</script>' value="test6">
+        <button id='</button><script>alert("closing_tag")</script><button>'>Closing Tag Button</button>
+        <div id='&lt;script&gt;alert("html_entity")&lt;/script&gt;'>HTML Entity Test</div>
+        <div class="result" id="result6">Test various encodings</div>
+    </div>
+
+    <div class="test-area">
+        <h3>Test 7: Dynamic Element Creation</h3>
+        <button onclick="createMaliciousElements()">Create Malicious Elements</button>
+        <div id="dynamic-elements"></div>
+        <div class="result" id="result7">Elements will be created dynamically</div>
+    </div>
+
+    <div id="final-results" style="margin-top: 30px; padding: 15px; background: #e9e9e9;">
+        <h3>Test Instructions:</h3>
+        <ol>
+            <li>Start ZAP Recording</li>
+            <li>Interact with ALL elements on this page</li>
+            <li>Click buttons, change inputs, click links</li>
+            <li>Stop recording and download ZEST script</li>
+            <li>Check if malicious payloads appear in the script</li>
+        </ol>
+    </div>
+
+    <script>
+        let testCount = 0;
+        let vulnerableCount = 0;
+
+        function markVulnerable(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.add('vulnerable');
+                vulnerableCount++;
+            }
+            testCount++;
+            updateSummary();
+        }
+
+        function markSecure(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.add('secure');
+            }
+            testCount++;
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('final-results').innerHTML += `
+                <p><strong>Progress: ${testCount} tests completed | ${vulnerableCount} potential vulnerabilities found</strong></p>
+            `;
+        }
+
+        function createMaliciousElements() {
+            const container = document.getElementById('dynamic-elements');
+            const maliciousPayloads = [
+                {id: 'dynamic_xss_<iframe src=javascript:alert(1)>', type: 'button', text: 'Dynamic XSS'},
+                {id: 'dynamic_path_../../../etc/hosts', type: 'input', text: 'Dynamic Path'},
+                {id: 'dynamic_js_javascript:fetch("http://malicious.com")', type: 'a', text: 'Dynamic JS'},
+                {id: 'dynamic_template_${fetch("/admin")}', type: 'div', text: 'Dynamic Template'}
+            ];
+
+            maliciousPayloads.forEach(payload => {
+                const element = document.createElement(payload.type);
+                element.id = payload.id;
+                element.textContent = payload.text;
+                if (payload.type === 'a') {
+                    element.href = '#';
+                }
+                container.appendChild(element);
+                
+                // Auto-interact with the element
+                setTimeout(() => {
+                    if (payload.type === 'input') {
+                        element.value = 'dynamic_malicious_value';
+                        element.dispatchEvent(new Event('change', {bubbles: true}));
+                    } else {
+                        element.click();
+                    }
+                }, 100);
+            });
+
+            document.getElementById('result7').innerHTML = '✓ Created and interacted with dynamic malicious elements';
+            markVulnerable('result7');
+        }
+
+        // Add event listeners to track interactions
+        document.addEventListener('click', function(e) {
+            if (e.target.id && e.target.id.includes('malicious') || 
+                e.target.id.includes('script') ||
+                e.target.id.includes('../') ||
+                e.target.id.includes('javascript:')) {
+                const resultId = 'result' + e.target.parentElement.querySelector('.test-area').id.replace('test-area-', '');
+                document.getElementById(resultId).innerHTML = `✓ Clicked: ${e.target.id}`;
+                markVulnerable(resultId);
+            }
+        });
+
+        document.addEventListener('change', function(e) {
+            if (e.target.id && (e.target.id.includes('malicious') || e.target.id.includes('script'))) {
+                const resultId = 'result' + e.target.parentElement.querySelector('.test-area').id.replace('test-area-', '');
+                document.getElementById(resultId).innerHTML = `✓ Changed: ${e.target.id} = ${e.target.value}`;
+                markVulnerable(resultId);
+            }
+        });
+
+        // Auto-test after page load
+        setTimeout(() => {
+            document.querySelectorAll('input, button, a').forEach(element => {
+                if (element.id && element.id.includes('malicious')) {
+                    setTimeout(() => {
+                        if (element.tagName === 'INPUT') {
+                            element.value = 'auto_test_value';
+                            element.dispatchEvent(new Event('change', {bubbles: true}));
+                        } else {
+                            element.click();
+                        }
+                    }, 500);
+                }
+            });
+        }, 2000);
+    </script>
+</body>
+</html>
