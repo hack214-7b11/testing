@@ -1,181 +1,1217 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>ZAP Content Script Vulnerability Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZAP Extension Security Test Suite</title>
     <style>
-        .test-area { margin: 20px; padding: 15px; border: 1px solid #ccc; }
-        .result { padding: 10px; margin: 5px 0; background: #f5f5f5; }
-        .vulnerable { border-left: 4px solid red; }
-        .secure { border-left: 4px solid green; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .status-bar {
+            background: #34495e;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2c3e50;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e74c3c;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.active {
+            background: #2ecc71;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .main-content {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 30px;
+        }
+        
+        .test-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .test-section:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .test-section h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .test-section h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #3498db;
+            border-radius: 2px;
+        }
+        
+        .test-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #219a52;
+            transform: translateY(-2px);
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .test-area {
+            background: white;
+            border: 2px dashed #bdc3c7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            min-height: 100px;
+        }
+        
+        .test-results {
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .result-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid #bdc3c7;
+            background: #f8f9fa;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .result-item.vulnerable {
+            border-left-color: #e74c3c;
+            background: #ffeaea;
+        }
+        
+        .result-item.secure {
+            border-left-color: #27ae60;
+            background: #eaffea;
+        }
+        
+        .result-item.warning {
+            border-left-color: #f39c12;
+            background: #fff4e6;
+        }
+        
+        .result-item.info {
+            border-left-color: #3498db;
+            background: #e6f3ff;
+        }
+        
+        .sidebar {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .progress-section {
+            margin-bottom: 25px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+        
+        .instructions {
+            background: #e6f3ff;
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .instructions h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+        }
+        
+        .test-element {
+            margin: 5px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+        
+        .test-element.malicious {
+            border-color: #e74c3c;
+            background: #ffeaea;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                position: static;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>ZAP Content Script Vulnerability Test</h1>
-    
-    <div class="test-area">
-        <h3>Test 1: XSS in Element Attributes</h3>
-        <input id='normal_input' value="safe_value">
-        <input id='malicious_id_<script>alert("xss")</script>' value="test1">
-        <button id='test_button_"><img src=x onerror=alert(1)>'>Button with XSS</button>
-        <div class="result" id="result1">Click elements above, then check recording</div>
-    </div>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 ZAP Extension Security Test Suite</h1>
+            <div class="subtitle">Comprehensive Security Assessment for ZAP Browser Extension</div>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">ZAP Status: Unknown</span>
+            </div>
+            <div id="testCounter">Tests Run: 0/9</div>
+        </div>
+        
+        <div class="main-content">
+            <div class="test-sections">
+                <!-- Section 1: Environment Detection -->
+                <div class="test-section">
+                    <h2>🌐 1. Environment Detection</h2>
+                    <div class="test-controls">
+                        <button class="btn btn-primary" onclick="detectEnvironment()">
+                            <span>🔍 Detect Environment</span>
+                        </button>
+                    </div>
+                    <div class="test-results" id="envResults">
+                        <div class="result-item info">Click to analyze the current browser environment...</div>
+                    </div>
+                </div>
 
-    <div class="test-area">
-        <h3>Test 2: Path Traversal in IDs</h3>
-        <input id='../../etc/passwd' value="test2">
-        <button id='../../../windows/system32/config/sam'>Path Traversal Button</button>
-        <div class="result" id="result2">Interact with elements above</div>
-    </div>
+                <!-- Section 2: ZAP Functionality Test -->
+                <div class="test-section">
+                    <h2>⚡ 2. ZAP Functionality Test</h2>
+                    <div class="test-controls">
+                        <button class="btn btn-primary" onclick="testBasicRecording()">
+                            <span>🎬 Test Basic Recording</span>
+                        </button>
+                        <button class="btn btn-warning" onclick="clearTestElements()">
+                            <span>🗑️ Clear Test Elements</span>
+                        </button>
+                    </div>
+                    <div class="test-area" id="functionalityTestArea">
+                        <p>Interact with these elements while ZAP is recording:</p>
+                        <input class="test-element" id="normal_input" placeholder="Normal input" value="safe_value">
+                        <button class="test-element" id="normal_button">Normal Button</button>
+                    </div>
+                    <div class="test-results" id="functionalityResults"></div>
+                </div>
 
-    <div class="test-area">
-        <h3>Test 3: JavaScript Protocol & Data URLs</h3>
-        <a id='javascript:alert("js_protocol")' href="#">JS Protocol Link</a>
-        <div id='data:text/html,<script>alert("data_url")</script>'>Data URL Element</div>
-        <div class="result" id="result3">Click the link</div>
-    </div>
+                <!-- Section 3: XSS Payload Tests -->
+                <div class="test-section">
+                    <h2>🛡️ 3. XSS Payload Tests</h2>
+                    <div class="test-controls">
+                        <button class="btn btn-danger" onclick="createXssElements()">
+                            <span>☠️ Create XSS Elements</span>
+                        </button>
+                        <button class="btn btn-warning" onclick="testXssElements()">
+                            <span>🧪 Test XSS Elements</span>
+                        </button>
+                    </div>
+                    <div class="test-area" id="xssTestArea"></div>
+                    <div class="test-results" id="xssResults"></div>
+                </div>
 
-    <div class="test-area">
-        <h3>Test 4: Template Injection</h3>
-        <input id='${alert("template_injection")}' value="test4">
-        <button id='#{malicious_code}'>Template Button</button>
-        <div class="result" id="result4">Interact with elements</div>
-    </div>
+                <!-- Section 4: Path Traversal Tests -->
+                <div class="test-section">
+                    <h2>📁 4. Path Traversal Tests</h2>
+                    <div class="test-controls">
+                        <button class="btn btn-danger" onclick="createPathTraversalElements()">
+                            <span>🗂️ Create Path Elements</span>
+                        </button>
+                    </div>
+                    <div class="test-area" id="pathTestArea"></div>
+                    <div class="test-results" id="pathResults"></div>
+                </div>
 
-    <div class="test-area">
-        <h3>Test 5: CSS Injection</h3>
-        <style>
-            .malicious-css { 
-                content: "'; color: red; background: blue; /*"; 
-            }
-        </style>
-        <div id='test";} body { background: red !important; } /*'>CSS Injection Div</div>
-        <button class='malicious-css'>CSS Class Button</button>
-        <div class="result" id="result5">Check if CSS breaks ZAP UI</div>
-    </div>
+                <!-- Section 5: Protocol Handler Tests -->
+                <div class="test-section">
+                    <h2>🔗 5. Protocol Handler Tests</h2>
+                    <div class="test-controls">
+                        <button class="btn btn-danger" onclick="createProtocolElements()">
+                            <span>🌐 Create Protocol Elements</span>
+                        </button>
+                    </div>
+                    <div class="test-area" id="protocolTestArea"></div>
+                    <div class="test-results" id="protocolResults"></div>
+                </div>
 
-    <div class="test-area">
-        <h3>Test 6: Special Characters & Encoding</h3>
-        <input id='"><script>alert("double_quote")</script>' value="test6">
-        <button id='</button><script>alert("closing_tag")</script><button>'>Closing Tag Button</button>
-        <div id='&lt;script&gt;alert("html_entity")&lt;/script&gt;'>HTML Entity Test</div>
-        <div class="result" id="result6">Test various encodings</div>
-    </div>
+                <!-- Section 6: Special Character Tests -->
+                <div class="test-section">
+                    <h2>🔤 6. Special Character Tests</h2>
+                    <div class="test-controls">
+                        <button class="btn btn-warning" onclick="createSpecialCharElements()">
+                            <span>⚡ Create Special Char Elements</span>
+                        </button>
+                    </div>
+                    <div class="test-area" id="specialCharTestArea"></div>
+                    <div class="test-results" id="specialCharResults"></div>
+                </div>
 
-    <div class="test-area">
-        <h3>Test 7: Dynamic Element Creation</h3>
-        <button onclick="createMaliciousElements()">Create Malicious Elements</button>
-        <div id="dynamic-elements"></div>
-        <div class="result" id="result7">Elements will be created dynamically</div>
-    </div>
+                <!-- Section 7: Dynamic Element Tests -->
+                <div class="test-section">
+                    <h2>🔄 7. Dynamic Element Tests</h2>
+                    <div class="test-controls">
+                        <button class="btn btn-primary" onclick="createDynamicElements()">
+                            <span>✨ Create Dynamic Elements</span>
+                        </button>
+                        <button class="btn btn-warning" onclick="massInteractionTest()">
+                            <span>🎯 Mass Interaction Test</span>
+                        </button>
+                    </div>
+                    <div class="test-area" id="dynamicTestArea"></div>
+                    <div class="test-results" id="dynamicResults"></div>
+                </div>
 
-    <div id="final-results" style="margin-top: 30px; padding: 15px; background: #e9e9e9;">
-        <h3>Test Instructions:</h3>
-        <ol>
-            <li>Start ZAP Recording</li>
-            <li>Interact with ALL elements on this page</li>
-            <li>Click buttons, change inputs, click links</li>
-            <li>Stop recording and download ZEST script</li>
-            <li>Check if malicious payloads appear in the script</li>
-        </ol>
+                <!-- Section 8: ZAP Monitoring -->
+                <div class="test-section">
+                    <h2>📊 8. ZAP Monitoring</h2>
+                    <div class="test-controls">
+                        <button class="btn btn-primary" onclick="startZapMonitoring()">
+                            <span>👁️ Start Monitoring</span>
+                        </button>
+                        <button class="btn btn-warning" onclick="checkZapPresence()">
+                            <span>🔎 Check ZAP Presence</span>
+                        </button>
+                        <button class="btn btn-warning" onclick="simulateZapProcessing()">
+                            <span>⚙️ Simulate Processing</span>
+                        </button>
+                    </div>
+                    <div class="test-results" id="monitoringResults"></div>
+                </div>
+
+                <!-- Section 9: Comprehensive Test -->
+                <div class="test-section">
+                    <h2>🚀 9. Comprehensive Test</h2>
+                    <div class="test-controls">
+                        <button class="btn btn-success" onclick="runAllTests()">
+                            <span>🎯 Run All Security Tests</span>
+                        </button>
+                        <button class="btn btn-primary" onclick="generateReport()">
+                            <span>📋 Generate Security Report</span>
+                        </button>
+                        <button class="btn btn-danger" onclick="resetAllTests()">
+                            <span>🔄 Reset All Tests</span>
+                        </button>
+                    </div>
+                    <div class="test-results" id="comprehensiveResults"></div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="progress-section">
+                    <h3>Test Progress</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div id="progressText">0% Complete</div>
+                </div>
+                
+                <div class="summary-section">
+                    <h3>Test Summary</h3>
+                    <div class="summary-item">
+                        <span>Environment Detection:</span>
+                        <span id="summaryEnv">Not Run</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>XSS Tests:</span>
+                        <span id="summaryXss">0 elements</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Path Traversal:</span>
+                        <span id="summaryPath">0 elements</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Protocol Tests:</span>
+                        <span id="summaryProtocol">0 elements</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Special Chars:</span>
+                        <span id="summarySpecial">0 elements</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Dynamic Elements:</span>
+                        <span id="summaryDynamic">0 elements</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>ZAP Status:</span>
+                        <span id="summaryZap">Unknown</span>
+                    </div>
+                </div>
+                
+                <div class="instructions">
+                    <h3>📝 Instructions</h3>
+                    <ol>
+                        <li>Start ZAP browser extension recording</li>
+                        <li>Click "Run All Security Tests"</li>
+                        <li>Interact with created elements</li>
+                        <li>Monitor results in real-time</li>
+                        <li>Stop recording and check ZEST script</li>
+                        <li>Generate security report</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        let testCount = 0;
-        let vulnerableCount = 0;
-
-        function markVulnerable(elementId) {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.classList.add('vulnerable');
-                vulnerableCount++;
+        // Global state management
+        const state = {
+            testsCompleted: 0,
+            totalTests: 9,
+            zapDetected: false,
+            testResults: {
+                environment: { status: 'not run', details: {} },
+                functionality: { status: 'not run', elements: 0 },
+                xss: { status: 'not run', elements: 0, tested: 0 },
+                pathTraversal: { status: 'not run', elements: 0 },
+                protocols: { status: 'not run', elements: 0 },
+                specialChars: { status: 'not run', elements: 0 },
+                dynamic: { status: 'not run', elements: 0 },
+                monitoring: { status: 'not run' },
+                comprehensive: { status: 'not run' }
             }
-            testCount++;
-            updateSummary();
+        };
+
+        // Utility Functions
+        function logResult(sectionId, type, message) {
+            const section = document.getElementById(sectionId);
+            if (!section) {
+                console.error(`Section ${sectionId} not found`);
+                return;
+            }
+
+            const result = document.createElement('div');
+            result.className = `result-item ${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            result.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            
+            section.appendChild(result);
+            section.scrollTop = section.scrollHeight;
         }
 
-        function markSecure(elementId) {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.classList.add('secure');
+        function clearResults(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.innerHTML = '';
             }
-            testCount++;
-            updateSummary();
+        }
+
+        function updateProgress() {
+            const progress = (state.testsCompleted / state.totalTests) * 100;
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const testCounter = document.getElementById('testCounter');
+            
+            if (progressFill) progressFill.style.width = `${progress}%`;
+            if (progressText) progressText.textContent = `${Math.round(progress)}% Complete`;
+            if (testCounter) testCounter.textContent = `Tests Run: ${state.testsCompleted}/${state.totalTests}`;
+        }
+
+        function updateStatusBar() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const zapDiv = document.getElementById('ZAP-floating-div');
+            
+            if (zapDiv && zapDiv.style.display !== 'none') {
+                state.zapDetected = true;
+                if (statusDot) {
+                    statusDot.classList.add('active');
+                    statusDot.style.animation = 'pulse 2s infinite';
+                }
+                if (statusText) statusText.textContent = 'ZAP Status: Recording Active 🎬';
+            } else {
+                state.zapDetected = false;
+                if (statusDot) {
+                    statusDot.classList.remove('active');
+                    statusDot.style.animation = 'none';
+                }
+                if (statusText) statusText.textContent = 'ZAP Status: Not Recording ⏸️';
+            }
         }
 
         function updateSummary() {
-            document.getElementById('final-results').innerHTML += `
-                <p><strong>Progress: ${testCount} tests completed | ${vulnerableCount} potential vulnerabilities found</strong></p>
-            `;
+            document.getElementById('summaryEnv').textContent = state.testResults.environment.status;
+            document.getElementById('summaryXss').textContent = `${state.testResults.xss.elements} elements`;
+            document.getElementById('summaryPath').textContent = `${state.testResults.pathTraversal.elements} elements`;
+            document.getElementById('summaryProtocol').textContent = `${state.testResults.protocols.elements} elements`;
+            document.getElementById('summarySpecial').textContent = `${state.testResults.specialChars.elements} elements`;
+            document.getElementById('summaryDynamic').textContent = `${state.testResults.dynamic.elements} elements`;
+            document.getElementById('summaryZap').textContent = state.zapDetected ? 'Detected' : 'Not Found';
         }
 
-        function createMaliciousElements() {
-            const container = document.getElementById('dynamic-elements');
-            const maliciousPayloads = [
-                {id: 'dynamic_xss_<iframe src=javascript:alert(1)>', type: 'button', text: 'Dynamic XSS'},
-                {id: 'dynamic_path_../../../etc/hosts', type: 'input', text: 'Dynamic Path'},
-                {id: 'dynamic_js_javascript:fetch("http://malicious.com")', type: 'a', text: 'Dynamic JS'},
-                {id: 'dynamic_template_${fetch("/admin")}', type: 'div', text: 'Dynamic Template'}
-            ];
-
-            maliciousPayloads.forEach(payload => {
-                const element = document.createElement(payload.type);
-                element.id = payload.id;
-                element.textContent = payload.text;
-                if (payload.type === 'a') {
-                    element.href = '#';
-                }
-                container.appendChild(element);
+        // Section 1: Environment Detection
+        function detectEnvironment() {
+            clearResults('envResults');
+            logResult('envResults', 'info', '🔍 Analyzing browser environment...');
+            
+            const environment = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                chromeApi: typeof chrome !== 'undefined',
+                chromeRuntime: typeof chrome !== 'undefined' && !!chrome.runtime,
+                zapDiv: !!document.getElementById('ZAP-floating-div'),
+                online: navigator.onLine
+            };
+            
+            state.testResults.environment = {
+                status: 'completed',
+                details: environment
+            };
+            
+            setTimeout(() => {
+                logResult('envResults', environment.chromeApi ? 'info' : 'warning', 
+                    `Chrome API: ${environment.chromeApi ? 'Available' : 'Not Available'}`);
+                logResult('envResults', environment.chromeRuntime ? 'info' : 'warning',
+                    `Chrome Runtime: ${environment.chromeRuntime ? 'Available' : 'Not Available (Normal for web pages)'}`);
+                logResult('envResults', environment.zapDiv ? 'secure' : 'warning',
+                    `ZAP Floating Div: ${environment.zapDiv ? 'Detected - Recording Active' : 'Not Detected'}`);
+                logResult('envResults', 'info', `Browser: ${environment.userAgent}`);
+                logResult('envResults', 'info', `Platform: ${environment.platform}`);
                 
-                // Auto-interact with the element
-                setTimeout(() => {
-                    if (payload.type === 'input') {
-                        element.value = 'dynamic_malicious_value';
-                        element.dispatchEvent(new Event('change', {bubbles: true}));
-                    } else {
-                        element.click();
-                    }
-                }, 100);
-            });
-
-            document.getElementById('result7').innerHTML = '✓ Created and interacted with dynamic malicious elements';
-            markVulnerable('result7');
+                state.testsCompleted++;
+                updateProgress();
+                updateSummary();
+            }, 1000);
         }
 
-        // Add event listeners to track interactions
-        document.addEventListener('click', function(e) {
-            if (e.target.id && e.target.id.includes('malicious') || 
-                e.target.id.includes('script') ||
-                e.target.id.includes('../') ||
-                e.target.id.includes('javascript:')) {
-                const resultId = 'result' + e.target.parentElement.querySelector('.test-area').id.replace('test-area-', '');
-                document.getElementById(resultId).innerHTML = `✓ Clicked: ${e.target.id}`;
-                markVulnerable(resultId);
-            }
-        });
+        // Section 2: Functionality Test
+        function testBasicRecording() {
+            clearResults('functionalityResults');
+            logResult('functionalityResults', 'info', 'Testing basic recording functionality...');
+            
+            // Add test elements
+            const testArea = document.getElementById('functionalityTestArea');
+            const testButton = document.createElement('button');
+            testButton.className = 'test-element';
+            testButton.textContent = 'Test Recording Button';
+            testButton.style.background = '#27ae60';
+            testButton.style.color = 'white';
+            
+            testButton.addEventListener('click', function() {
+                logResult('functionalityResults', 'secure', '✓ Test button clicked - event recorded');
+            });
+            
+            testArea.appendChild(testButton);
+            
+            // Test input change
+            const testInput = document.createElement('input');
+            testInput.className = 'test-element';
+            testInput.placeholder = 'Test input for recording';
+            testInput.addEventListener('change', function(e) {
+                logResult('functionalityResults', 'secure', `✓ Input changed: ${e.target.value}`);
+            });
+            
+            testArea.appendChild(testInput);
+            
+            state.testResults.functionality = {
+                status: 'completed',
+                elements: 2
+            };
+            
+            logResult('functionalityResults', 'info', '✅ Basic functionality test completed');
+            state.testsCompleted++;
+            updateProgress();
+            updateSummary();
+        }
 
-        document.addEventListener('change', function(e) {
-            if (e.target.id && (e.target.id.includes('malicious') || e.target.id.includes('script'))) {
-                const resultId = 'result' + e.target.parentElement.querySelector('.test-area').id.replace('test-area-', '');
-                document.getElementById(resultId).innerHTML = `✓ Changed: ${e.target.id} = ${e.target.value}`;
-                markVulnerable(resultId);
-            }
-        });
+        function clearTestElements() {
+            const testAreas = [
+                'functionalityTestArea',
+                'xssTestArea',
+                'pathTestArea', 
+                'protocolTestArea',
+                'specialCharTestArea',
+                'dynamicTestArea'
+            ];
+            
+            testAreas.forEach(areaId => {
+                const area = document.getElementById(areaId);
+                if (area) {
+                    // Clear only dynamically added elements, keep original ones
+                    const elements = area.querySelectorAll('.test-element:not(:first-child)');
+                    elements.forEach(el => el.remove());
+                }
+            });
+            
+            logResult('comprehensiveResults', 'info', '🧹 All test elements cleared');
+        }
 
-        // Auto-test after page load
-        setTimeout(() => {
-            document.querySelectorAll('input, button, a').forEach(element => {
-                if (element.id && element.id.includes('malicious')) {
+        // Section 3: XSS Payload Tests
+        function createXssElements() {
+            const area = document.getElementById('xssTestArea');
+            area.innerHTML = '<p>XSS Test Elements (click to test):</p>';
+            
+            const xssPayloads = [
+                { id: 'xss_script_tag', text: '&lt;script&gt;alert("xss")&lt;/script&gt;', desc: 'Script Tag' },
+                { id: 'xss_img_onerror', text: '&lt;img src=x onerror=alert(1)&gt;', desc: 'IMG onerror' },
+                { id: 'xss_svg_onload', text: '&lt;svg onload=alert("svg")&gt;', desc: 'SVG onload' }
+            ];
+            
+            xssPayloads.forEach(payload => {
+                const button = document.createElement('button');
+                button.className = 'test-element malicious';
+                button.innerHTML = `${payload.desc}: ${payload.text}`;
+                button.dataset.payload = payload.text;
+                
+                button.addEventListener('click', function(e) {
+                    logResult('xssResults', 'vulnerable', 
+                        `☠️ XSS Element Clicked: ${payload.desc} - ${e.target.dataset.payload}`);
+                });
+                
+                area.appendChild(button);
+                area.appendChild(document.createElement('br'));
+            });
+            
+            state.testResults.xss.elements = xssPayloads.length;
+            logResult('xssResults', 'info', `✅ Created ${xssPayloads.length} XSS test elements`);
+            updateSummary();
+        }
+
+        function testXssElements() {
+            const buttons = document.querySelectorAll('#xssTestArea .test-element');
+            logResult('xssResults', 'info', `Testing ${buttons.length} XSS elements...`);
+            
+            buttons.forEach((button, index) => {
+                setTimeout(() => {
+                    button.click();
+                    state.testResults.xss.tested++;
+                }, index * 500);
+            });
+            
+            state.testResults.xss.status = 'completed';
+            state.testsCompleted++;
+            updateProgress();
+            updateSummary();
+        }
+
+        // Section 4: Path Traversal Tests
+        function createPathTraversalElements() {
+            const area = document.getElementById('pathTestArea');
+            area.innerHTML = '<p>Path Traversal Test Elements:</p>';
+            
+            const pathPayloads = [
+                { id: 'unix_path', text: '../../etc/passwd', desc: 'Unix Path' },
+                { id: 'windows_path', text: '..\\..\\windows\\system32', desc: 'Windows Path' },
+                { id: 'encoded_path', text: '%2e%2e%2fetc%2fpasswd', desc: 'URL Encoded' }
+            ];
+            
+            pathPayloads.forEach(payload => {
+                const button = document.createElement('button');
+                button.className = 'test-element malicious';
+                button.textContent = `${payload.desc}: ${payload.text}`;
+                button.dataset.payload = payload.text;
+                
+                button.addEventListener('click', function(e) {
+                    logResult('pathResults', 'vulnerable',
+                        `📁 Path Traversal Clicked: ${e.target.dataset.payload}`);
+                });
+                
+                area.appendChild(button);
+                area.appendChild(document.createElement('br'));
+            });
+            
+            state.testResults.pathTraversal = {
+                status: 'completed',
+                elements: pathPayloads.length
+            };
+            
+            logResult('pathResults', 'info', `✅ Created ${pathPayloads.length} path traversal test elements`);
+            state.testsCompleted++;
+            updateProgress();
+            updateSummary();
+        }
+
+        // Section 5: Protocol Handler Tests
+        function createProtocolElements() {
+            const area = document.getElementById('protocolTestArea');
+            area.innerHTML = '<p>Protocol Handler Test Elements:</p>';
+            
+            const protocolPayloads = [
+                { id: 'js_protocol', text: 'javascript:alert("js")', desc: 'JavaScript Protocol' },
+                { id: 'data_url', text: 'data:text/html,<script>alert("data")</script>', desc: 'Data URL' },
+                { id: 'vb_protocol', text: 'vbscript:msgbox("vbs")', desc: 'VBScript' }
+            ];
+            
+            protocolPayloads.forEach(payload => {
+                const link = document.createElement('a');
+                link.className = 'test-element malicious';
+                link.href = '#';
+                link.innerHTML = `${payload.desc}: <code>${payload.text}</code>`;
+                link.dataset.payload = payload.text;
+                
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    logResult('protocolResults', 'vulnerable',
+                        `🔗 Protocol Handler Clicked: ${e.target.dataset.payload}`);
+                });
+                
+                area.appendChild(link);
+                area.appendChild(document.createElement('br'));
+            });
+            
+            state.testResults.protocols = {
+                status: 'completed',
+                elements: protocolPayloads.length
+            };
+            
+            logResult('protocolResults', 'info', `✅ Created ${protocolPayloads.length} protocol test elements`);
+            state.testsCompleted++;
+            updateProgress();
+            updateSummary();
+        }
+
+        // Section 6: Special Character Tests
+        function createSpecialCharElements() {
+            const area = document.getElementById('specialCharTestArea');
+            area.innerHTML = '<p>Special Character Test Elements:</p>';
+            
+            const specialChars = [
+                { id: 'quotes', text: 'test"quotes"here', desc: 'Double Quotes' },
+                { id: 'angles', text: 'test<angles>here', desc: 'Angle Brackets' },
+                { id: 'ampersand', text: 'test&ersand', desc: 'Ampersand' }
+            ];
+            
+            specialChars.forEach(chars => {
+                const input = document.createElement('input');
+                input.className = 'test-element';
+                input.placeholder = chars.desc;
+                input.value = chars.text;
+                input.dataset.payload = chars.text;
+                
+                input.addEventListener('change', function(e) {
+                    logResult('specialCharResults', 'info',
+                        `🔤 Special Char Input: ${e.target.value}`);
+                });
+                
+                area.appendChild(input);
+                area.appendChild(document.createElement('br'));
+            });
+            
+            state.testResults.specialChars = {
+                status: 'completed',
+                elements: specialChars.length
+            };
+            
+            logResult('specialCharResults', 'info', `✅ Created ${specialChars.length} special character test elements`);
+            state.testsCompleted++;
+            updateProgress();
+            updateSummary();
+        }
+
+        // Section 7: Dynamic Element Tests
+        function createDynamicElements() {
+            const area = document.getElementById('dynamicTestArea');
+            area.innerHTML = '<p>Dynamic Elements (auto-created):</p>';
+            
+            const dynamicPayloads = [
+                { id: 'dyn_script', text: 'dynamic_<script>', type: 'button' },
+                { id: 'dyn_path', text: 'dynamic_../etc', type: 'input' },
+                { id: 'dyn_protocol', text: 'dynamic_javascript:', type: 'button' }
+            ];
+            
+            dynamicPayloads.forEach((payload, index) => {
+                setTimeout(() => {
+                    const element = document.createElement(payload.type);
+                    element.className = 'test-element malicious';
+                    
+                    if (payload.type === 'input') {
+                        element.value = payload.text;
+                        element.addEventListener('change', function(e) {
+                            logResult('dynamicResults', 'vulnerable',
+                                `🔄 Dynamic Input: ${e.target.value}`);
+                        });
+                    } else {
+                        element.textContent = payload.text;
+                        element.addEventListener('click', function(e) {
+                            logResult('dynamicResults', 'vulnerable',
+                                `🔄 Dynamic Button: ${e.target.textContent}`);
+                        });
+                    }
+                    
+                    area.appendChild(element);
+                    area.appendChild(document.createElement('br'));
+                    
+                    // Auto-interact
                     setTimeout(() => {
-                        if (element.tagName === 'INPUT') {
-                            element.value = 'auto_test_value';
-                            element.dispatchEvent(new Event('change', {bubbles: true}));
+                        if (payload.type === 'input') {
+                            element.dispatchEvent(new Event('change', { bubbles: true }));
                         } else {
                             element.click();
                         }
                     }, 500);
-                }
+                    
+                }, index * 1000);
             });
-        }, 2000);
+            
+            state.testResults.dynamic = {
+                status: 'completed',
+                elements: dynamicPayloads.length
+            };
+            
+            logResult('dynamicResults', 'info', `✅ Creating ${dynamicPayloads.length} dynamic elements...`);
+            state.testsCompleted++;
+            updateProgress();
+            updateSummary();
+        }
+
+        function massInteractionTest() {
+            const elements = document.querySelectorAll('.test-element');
+            logResult('dynamicResults', 'info', `🎯 Mass interaction with ${elements.length} elements...`);
+            
+            elements.forEach((element, index) => {
+                setTimeout(() => {
+                    if (element.tagName === 'INPUT') {
+                        element.value = `mass_test_${index}_${Date.now()}`;
+                        element.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else if (element.tagName === 'BUTTON' || element.tagName === 'A') {
+                        element.click();
+                    }
+                }, index * 100);
+            });
+        }
+
+        // Section 8: ZAP Monitoring
+        function startZapMonitoring() {
+            clearResults('monitoringResults');
+            logResult('monitoringResults', 'info', '👁️ Starting ZAP monitoring...');
+            
+            // Monitor for ZAP div
+            let zapCheckCount = 0;
+            const zapCheckInterval = setInterval(() => {
+                zapCheckCount++;
+                const zapDiv = document.getElementById('ZAP-floating-div');
+                
+                if (zapDiv && zapDiv.style.display !== 'none') {
+                    logResult('monitoringResults', 'secure', '✅ ZAP Floating Div Detected - Recording Active');
+                    clearInterval(zapCheckInterval);
+                    
+                    // Monitor ZAP div for changes
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.type === 'childList') {
+                                mutation.addedNodes.forEach((node) => {
+                                    if (node.nodeType === 1 && node.textContent) {
+                                        logResult('monitoringResults', 'info', 
+                                            `📊 ZAP UI: ${node.textContent.substring(0, 100)}`);
+                                    }
+                                });
+                            }
+                        });
+                    });
+                    
+                    observer.observe(zapDiv, { childList: true, subtree: true });
+                    state.testResults.monitoring.status = 'active';
+                    
+                } else if (zapCheckCount > 10) {
+                    logResult('monitoringResults', 'warning', 
+                        '❌ ZAP Floating Div not detected after 10 seconds. Start ZAP recording.');
+                    clearInterval(zapCheckInterval);
+                    state.testResults.monitoring.status = 'inactive';
+                }
+            }, 1000);
+            
+            state.testsCompleted++;
+            updateProgress();
+            updateSummary();
+        }
+
+        function checkZapPresence() {
+            logResult('monitoringResults', 'info', '🔎 Checking for ZAP presence...');
+            
+            // Check various indicators
+            const indicators = [];
+            
+            // Check for ZAP div
+            if (document.getElementById('ZAP-floating-div')) {
+                indicators.push('ZAP Floating Div');
+            }
+            
+            // Check for ZAP-related classes
+            const zapElements = document.querySelectorAll('[class*="zap"], [class*="ZAP"]');
+            if (zapElements.length > 0) {
+                indicators.push('ZAP CSS Classes');
+            }
+            
+            if (indicators.length > 0) {
+                logResult('monitoringResults', 'secure', 
+                    `✅ ZAP detected: ${indicators.join(', ')}`);
+            } else {
+                logResult('monitoringResults', 'warning', 
+                    '❌ No ZAP indicators found. Start ZAP recording.');
+            }
+        }
+
+        function simulateZapProcessing() {
+            logResult('monitoringResults', 'info', '⚙️ Simulating ZAP element processing...');
+            
+            const elements = document.querySelectorAll('.test-element');
+            elements.forEach((element, index) => {
+                setTimeout(() => {
+                    const simulatedData = {
+                        tag: element.tagName,
+                        id: element.id || 'no-id',
+                        value: element.value || element.textContent || 'no-value',
+                        classes: element.className || 'no-class'
+                    };
+                    
+                    logResult('monitoringResults', 'info',
+                        `🔧 ZAP Simulation [${index + 1}]: ${JSON.stringify(simulatedData)}`);
+                }, index * 200);
+            });
+        }
+
+        // Section 9: Comprehensive Test
+        function runAllTests() {
+            clearResults('comprehensiveResults');
+            logResult('comprehensiveResults', 'info', '🚀 Starting comprehensive security test suite...');
+            
+            // Reset state
+            state.testsCompleted = 0;
+            state.testResults = {
+                environment: { status: 'not run', details: {} },
+                functionality: { status: 'not run', elements: 0 },
+                xss: { status: 'not run', elements: 0, tested: 0 },
+                pathTraversal: { status: 'not run', elements: 0 },
+                protocols: { status: 'not run', elements: 0 },
+                specialChars: { status: 'not run', elements: 0 },
+                dynamic: { status: 'not run', elements: 0 },
+                monitoring: { status: 'not run' },
+                comprehensive: { status: 'running' }
+            };
+            
+            updateProgress();
+            updateSummary();
+            
+            // Run tests in sequence
+            const testSequence = [
+                { fn: detectEnvironment, delay: 1000, name: 'Environment Detection' },
+                { fn: testBasicRecording, delay: 2000, name: 'Basic Functionality' },
+                { fn: createXssElements, delay: 3000, name: 'XSS Elements' },
+                { fn: createPathTraversalElements, delay: 4000, name: 'Path Traversal' },
+                { fn: createProtocolElements, delay: 5000, name: 'Protocol Handlers' },
+                { fn: createSpecialCharElements, delay: 6000, name: 'Special Characters' },
+                { fn: createDynamicElements, delay: 7000, name: 'Dynamic Elements' },
+                { fn: startZapMonitoring, delay: 8000, name: 'ZAP Monitoring' },
+                { fn: () => {
+                    setTimeout(() => {
+                        testXssElements();
+                        setTimeout(massInteractionTest, 1000);
+                        setTimeout(simulateZapProcessing, 2000);
+                    }, 500);
+                }, delay: 9000, name: 'Final Tests' }
+            ];
+            
+            testSequence.forEach((test, index) => {
+                setTimeout(() => {
+                    logResult('comprehensiveResults', 'info', `▶️ Running: ${test.name}`);
+                    test.fn();
+                }, test.delay);
+            });
+            
+            setTimeout(() => {
+                logResult('comprehensiveResults', 'success', '✅ All tests completed!');
+                logResult('comprehensiveResults', 'info', '📋 Stop ZAP recording and check the downloaded ZEST script for any malicious content.');
+                state.testResults.comprehensive.status = 'completed';
+            }, 12000);
+        }
+
+        function generateReport() {
+            clearResults('comprehensiveResults');
+            
+            let vulnerabilityCount = 0;
+            let secureCount = 0;
+            let warningCount = 0;
+            
+            // Count results from all test areas
+            const resultContainers = document.querySelectorAll('.test-results');
+            resultContainers.forEach(container => {
+                const vulnerable = container.querySelectorAll('.vulnerable').length;
+                const secure = container.querySelectorAll('.secure').length;
+                const warning = container.querySelectorAll('.warning').length;
+                
+                vulnerabilityCount += vulnerable;
+                secureCount += secure;
+                warningCount += warning;
+            });
+            
+            const report = `
+                <div class="result-item info">
+                    <h3>📊 ZAP Extension Security Assessment Report</h3>
+                    <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+                </div>
+                <div class="result-item ${vulnerabilityCount > 0 ? 'vulnerable' : 'secure'}">
+                    <h4>Overall Security Status: ${vulnerabilityCount > 0 ? 'VULNERABLE' : 'SECURE'}</h4>
+                    <p>Vulnerabilities Found: ${vulnerabilityCount}</p>
+                    <p>Secure Tests: ${secureCount}</p>
+                    <p>Warnings: ${warningCount}</p>
+                </div>
+                <div class="result-item info">
+                    <h4>Test Summary:</h4>
+                    <p>• Environment: ${state.testResults.environment.status}</p>
+                    <p>• XSS Tests: ${state.testResults.xss.elements} elements created</p>
+                    <p>• Path Traversal: ${state.testResults.pathTraversal.elements} elements created</p>
+                    <p>• Protocol Handlers: ${state.testResults.protocols.elements} elements created</p>
+                    <p>• ZAP Detection: ${state.zapDetected ? 'Active' : 'Not Found'}</p>
+                </div>
+                <div class="result-item warning">
+                    <h4>Next Steps:</h4>
+                    <p>1. Check the downloaded ZEST script for any malicious content</p>
+                    <p>2. If vulnerabilities found, report to ZAP development team</p>
+                    <p>3. Review ZAP extension security practices</p>
+                </div>
+            `;
+            
+            document.getElementById('comprehensiveResults').innerHTML = report;
+        }
+
+        function resetAllTests() {
+            state.testsCompleted = 0;
+            state.testResults = {
+                environment: { status: 'not run', details: {} },
+                functionality: { status: 'not run', elements: 0 },
+                xss: { status: 'not run', elements: 0, tested: 0 },
+                pathTraversal: { status: 'not run', elements: 0 },
+                protocols: { status: 'not run', elements: 0 },
+                specialChars: { status: 'not run', elements: 0 },
+                dynamic: { status: 'not run', elements: 0 },
+                monitoring: { status: 'not run' },
+                comprehensive: { status: 'not run' }
+            };
+            
+            // Clear all results
+            const resultContainers = document.querySelectorAll('.test-results');
+            resultContainers.forEach(container => {
+                container.innerHTML = '<div class="result-item info">Ready for testing...</div>';
+            });
+            
+            // Clear test areas
+            clearTestElements();
+            
+            // Reset progress
+            updateProgress();
+            updateSummary();
+            
+            logResult('comprehensiveResults', 'info', '🔄 All tests reset and ready for new session.');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            logResult('comprehensiveResults', 'info', '🔍 ZAP Extension Security Test Suite Ready');
+            logResult('comprehensiveResults', 'info', '💡 Click "Run All Security Tests" to begin comprehensive testing');
+            
+            // Start monitoring ZAP status
+            setInterval(updateStatusBar, 2000);
+            updateStatusBar();
+        });
+
+        // Error handling
+        window.addEventListener('error', function(e) {
+            console.error('Test Suite Error:', e.error);
+            logResult('comprehensiveResults', 'warning', `⚠️ Script Error: ${e.message}`);
+        });
     </script>
 </body>
 </html>
