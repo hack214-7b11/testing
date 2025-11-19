@@ -1,39 +1,27 @@
 <!DOCTYPE html>
 <html>
 <body>
-    <h2>ZAP Message Injection Test</h2>
-    <button onclick="sendMaliciousMessage()">Send Malicious Message to ZAP</button>
-    <div id="result"></div>
+    <h2>Test: Does ZAP Record Element IDs?</h2>
+    
+    <!-- Element with simple ID -->
+    <button id="simple_id" onclick="alert('simple')">Button with Simple ID</button>
+    
+    <!-- Element with complex ID -->
+    <button id="complex_id_with-special.chars" onclick="alert('complex')">Button with Complex ID</button>
+    
+    <!-- Element with numeric ID -->
+    <button id="12345" onclick="alert('numeric')">Button with Numeric ID</button>
+    
+    <!-- Element with no ID -->
+    <button onclick="alert('no id')">Button with No ID</button>
 
     <script>
-        function sendMaliciousMessage() {
-            // This only works if we can find a way to access chrome.runtime
-            // from a content script or background page context
-            
-            // The real vulnerability is that ZAP's background script
-            // accepts ZEST_SCRIPT messages without checking the sender
-            
-            const result = document.getElementById('result');
-            
-            // Try to access chrome APIs (this won't work from web page)
-            if (typeof chrome !== 'undefined' && chrome.runtime) {
-                // This would be the exploit if it worked from web pages
-                chrome.runtime.sendMessage({
-                    type: 'ZEST_SCRIPT',
-                    data: JSON.stringify({
-                        malicious: true,
-                        command: "inject",
-                        payload: "<script>alert('xss')</script>"
-                    })
-                });
-                result.innerHTML = "Message sent (if extension vulnerable)";
-            } else {
-                result.innerHTML = "Chrome runtime not available from web pages (this is normal)";
-            }
-        }
-        
-        // The real test: Can we find another way to send messages to ZAP?
-        // Through content scripts? Through postMessage? Through other extension APIs?
+        // Click all buttons automatically after 2 seconds
+        setTimeout(() => {
+            document.querySelectorAll('button').forEach(btn => {
+                btn.click();
+            });
+        }, 2000);
     </script>
 </body>
 </html>
